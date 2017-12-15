@@ -6,7 +6,6 @@ import base64
 import datetime
 import ipaddress
 import urllib.request
-from urllib.parse import quote
 import json
 
 from .outputs import Outputter
@@ -75,15 +74,6 @@ def readConfig():
     return config
 
 
-# read config from eventually existing T-Pot installation (see dtag-dev-sec.github.io)
-def getConfig(config2):
-        username = config2.get("output_ews", "username")
-        nodeid = config2.get("elasticpot", "nodeid")
-        ewssender = config2.get("elasticpot", "elasticpot")
-        hostip = config2.get("main", "ip")
-
-        return (username, "", "", nodeid, "", ewssender, "", hostip)
-
 # re-assemble raw http request from request headers, return base64 encoded
 def createRaw(request):
     # Generate querystring
@@ -112,11 +102,8 @@ def createRaw(request):
     return requestheaders64
 
 
-
 # Send data to either logfile (for ewsposter, location from ews.cfg) or directly to ews backend
 def logData(querystring, postdata, ip):
-    global username, token, server, nodeid, ignorecert, ewssender, jsonpath, hostip
-
 	# Create request headers for raw request
     raw = createRaw(request)
 
@@ -126,18 +113,16 @@ def logData(querystring, postdata, ip):
     data['event_type'] = "alert"
     data['src_ip'] = ip
     data['src_port'] = request.environ.get('REMOTE_PORT', 44927)
-    data['dest_ip'] = hostip
+    data['dest_ip'] = self.config['main']['ip']
     data['dest_port'] = request.environ['SERVER_PORT']
     data2 = {}
     data2['name'] = "Elasticpot"
-    data2['nodeid'] = nodeid
+    data2['nodeid'] = self.config['elasticpot']['nodeid']
     data2['name'] = "Elasticpot"
     data2['query'] = querystring
     data2['postdata'] = postdata
     data2['raw'] = raw
     data['honeypot'] = data2
-    
-    print(data)
     
     outputter.send(data)
 
@@ -242,6 +227,7 @@ def handleSearchExploitGet():
 
     return ""
 
+
 # handle search route (POST)
 @route('/_search', method='POST')
 def handleSearchExploit():
@@ -264,6 +250,7 @@ def handleSearchExploit():
     logData(httpreq, postContent, ip)
 
     return ""
+
 
 # handle head plugin
 @route('/_plugin/head')
@@ -304,8 +291,6 @@ def pluginhead():
 ##########################
 
 config = readConfig()
-username, token, server, nodeid, ignorecert, ewssender, jsonpath, hostip = getConfig(config)
-
 outputter = Outputter(config)
 
 application = default_app()
