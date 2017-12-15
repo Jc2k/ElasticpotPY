@@ -108,13 +108,18 @@ def createRaw(request):
 
 
 # Send data to either logfile (for ewsposter, location from ews.cfg) or directly to ews backend
-def logData(postdata):
+def logData():
     if request.query_string == "":
          querystring = ""
     else:
         querystring = "?" + request.query_string
 
     querystring = request.method + " " + request.path + querystring
+
+    if request.method == "POST":
+        postdata = ""
+        for l in request.body:
+            postdata += l.decode("utf-8")
 
 	# Create request headers for raw request
     raw = createRaw(request)
@@ -167,13 +172,10 @@ def error404(error):
     # DO WE WANT TO LOG THESE???
 
 	# Log request to console
-    postContent = ""
-    for l in request.body:
-        postContent += l.decode("utf-8")
-    print("Elasticpot: Access to non existing ressource: " + request.url + " " + postContent)
+    print("Elasticpot: Access to non existing ressource: " + request.url)
 
 	# Log the data
-    logData(postContent)
+    logData()
 
 
     # Return data
@@ -196,11 +198,10 @@ def getindeces():
     indexData = txt.read()
 
     # Log request to console
-    postContent = ""
     print ("Elasticpot: Found possible attack (/_cat/indices): " + request.url)
 
     # Log the data
-    logData(postContent)
+    logData()
 
     # Return data
     return indexData
@@ -210,11 +211,10 @@ def getindeces():
 def handleSearchExploitGet():
 
     # Log request to console
-    postContent = ""
     print ("Elasticpot: Found possible attack (_search): " + request.url)
 
 	# Log the data
-    logData(postContent)
+    logData()
 
     return ""
 
@@ -224,13 +224,10 @@ def handleSearchExploitGet():
 def handleSearchExploit():
 
     # Log request to console
-    postContent = ""
-    for l in request.body:
-        postContent += l.decode("utf-8")
-    print("Elasticpot: Found possible attack (_search): " + request.url + postContent)
+    print("Elasticpot: Found possible attack (_search): " + request.url)
 
 	# Log the data
-    logData(postContent)
+    logData()
 
     return ""
 
@@ -242,13 +239,10 @@ def pluginhead():
     indexData = txt.read()
 
     # Log request to console
-    postContent = ""
-    for l in request.body:
-        postContent += l.decode("utf-8")
-    print("Elasticpot: Access to ElasticSearch head plugin: " + request.url + " " + postContent)
+    print("Elasticpot: Access to ElasticSearch head plugin: " + request.url)
 
 	# Log the data
-    logData(postContent)
+    logData()
 
     # Return data
     return indexData
