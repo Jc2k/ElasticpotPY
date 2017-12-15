@@ -1,6 +1,6 @@
 from bottle import route, run, request, error
 import requests
-import os.path
+import os
 import configparser
 import base64
 import datetime
@@ -9,31 +9,76 @@ import urllib.request
 from urllib.parse import quote
 import json
 
+from .outputs import Outputter
+
+
 ##########################
 # Config section
 ##########################
 
 configfile = "elasticpot.cfg"   # point to elasticpot.cfg or an ews.cfg if you use ewsposter
 hostport = 9200                 # port to run elasticpot on
+template_folder = os.path.join(os.path.dirname(__file__), 'templates')
 
 ##########################
 # FUNCTIONS
 ##########################
 
-# read config from eventually existing T-Pot installation (see dtag-dev-sec.github.io)
-def getConfig():
-        config2 = configparser.ConfigParser()
-        config2.read(configfile)
-        username = config2.get("EWS", "username")
-        token = config2.get("EWS", "token")
-        server = config2.get("EWS", "rhost_first")
-        nodeid = config2.get("ELASTICPOT", "nodeid")
-        ewssender = config2.get("ELASTICPOT", "elasticpot")
-        jsonpath = config2.get("ELASTICPOT", "logfile")
-        ignorecert = config2.get("EWS", "ignorecert")
-        hostip = config2.get("MAIN", "ip")
+def readConfig():
+    config = configparser.ConfigParser()
+    
+    config['main'] = {
+        'ip': '127.0.0.1',
+    }
 
-        return (username, token, server, nodeid, ignorecert, ewssender, jsonpath, hostip)
+    config['elasticpot'] = {
+        'nodeid': 'elasticpot-community-1',
+        'elasticpot': 'True',
+    }
+
+    config['output_console'] = {
+        'enabled': 'True',
+    }
+
+    config['output_ews'] = {
+        'enabled': 'False',
+        'username': '',
+        'token': '',
+        'rhost_first': '',
+        'ignorecert': 'False',
+    }
+
+    config['output_file'] = {
+        'enabled': 'False',
+        'logfile': 'elasticpot.log',
+        
+    }
+
+    config['output_hpfeeds'] = {
+        'enabled': 'False',
+    }
+
+    if os.path.exists(configfile):
+        config.read(configfile)
+    
+    for section in config.sections():
+        for key in config[section].keys():
+            envkey = '{}_{}'.format(section, key).upper()
+            if envkey in os.environ:
+                print("Setting {}.{} from environment".format(section, key))
+                config[section][key] = os.environ[envkey]
+
+    return config
+
+
+# read config from eventually existing T-Pot installation (see dtag-dev-sec.github.io)
+def getConfig(config2):
+        username = config2.get("output_ews", "username")
+        nodeid = config2.get("elasticpot", "nodeid")
+        ewssender = config2.get("elasticpot", "elasticpot")
+        hostip = config2.get("main", "ip")
+
+        return (username, "", "", nodeid, "", ewssender, "", hostip)
 
 # re-assemble raw http request from request headers, return base64 encoded
 def createRaw(request):
@@ -86,54 +131,8 @@ def logData(querystring, postdata, ip,raw):
     data2['postdata'] = postdata
     data2['raw'] = raw
     data['honeypot'] = data2
-
-    # Send to json logfile
-    if os.path.isfile(configfile) and ewssender.upper() == "TRUE":
-        with open(jsonpath, 'a') as outfile:
-            json.dump(data, outfile)
-            outfile.write('\n')
-
-
-    # send via own posting mechanism to defined server
-    else:
-        if (username == None or token == None):
-            print("No credentials found in config file.")
-            return
-        txt = open("./templates/ews.txt")
-        xml = txt.read()
-
-        xml = xml.replace("_IP_", ip)
-        xml = xml.replace("_TARGET_", hostip)
-        xml = xml.replace("_SRCPORT_", str(srcport))
-        xml = xml.replace("_DSTPORT_", str(hostport))
-        xml = xml.replace("_USERNAME_", username)
-        xml = xml.replace("_TOKEN_", token)
-        xml = xml.replace("_URL_", quote(str(querystring)))
-        xml = xml.replace("_RAW_", raw)
-        xml = xml.replace("_DATA_", quote(str(postdata)))
-        xml = xml.replace("_NODEID_", nodeid)
-
-        curDate = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S')
-
-        xml = xml.replace("_TIME_", curDate)
-
-        headers = {'Content-Type': 'application/xml'}
-
-        # fix ignorecert to verifycert logic
-
-        if (ignorecert == None):
-            ignorecert = True
-        elif (ignorecert == "true"):
-            ignorecert = False
-        elif (ignorecert == "false"):
-            ignorecert = True
-
-        try:
-            requests.post(server, data=xml, headers=headers, verify=ignorecert, timeout=5)
-        except requests.exceptions.Timeout:
-            print("Elasticpot: Error trying to submit attack: Connection timeout.")
-        except requests.exceptions.RequestException as e:
-            print(e)
+    
+    outputter.send(data)
 
 
 ##########################
@@ -144,7 +143,7 @@ def logData(querystring, postdata, ip,raw):
 @route('/', method='GET')
 def index():
 
-    txt = open("./templates/index.txt")
+    txt = open(os.path.join(template_folder, 'index.txt'))
     indexData = txt.read()
 
     # Not an attack
@@ -155,7 +154,7 @@ def index():
 # handle irrelevant / error requests
 @error(404)
 def error404(error):
-    txt = open("./templates/404.txt")
+    txt = open(os.path.join(template_folder, '404.txt'))
     indexData = txt.read()
 
     # DO WE WANT TO LOG THESE???
@@ -187,7 +186,7 @@ def error404(error):
 # handle favicon
 @route('/favicon.ico', method='GET')
 def getindeces():
-    txt = open("./templates/favicon.ico.txt")
+    txt = open(os.path.join(template_folder, 'favicon.ico.txt'))
     indexData = txt.read()
 
     # Not an attack
@@ -197,7 +196,7 @@ def getindeces():
 # handle route to indices
 @route('/_cat/indices', method='GET')
 def getindeces():
-    txt = open("./templates/getindeces.txt")
+    txt = open(os.path.join(template_folder, 'getindeces.txt'))
     indexData = txt.read()
 
     # Log request to console
@@ -274,7 +273,7 @@ def handleSearchExploit():
 # handle head plugin
 @route('/_plugin/head')
 def pluginhead():
-    txt = open("./templates/pluginhead.txt")
+    txt = open(os.path.join(template_folder, 'pluginhead.txt'))
     indexData = txt.read()
 
     # Log request to console
@@ -310,17 +309,16 @@ def pluginhead():
 ##### MAIN START
 ##########################
 
-# initialize relevant data from the config file
-if (not os.path.isfile(configfile)):
-    print("Elasticpot: Failed to read configfile. Elasticpot will exit.")
-    exit(1)
-else: 
-    username, token, server, nodeid, ignorecert, ewssender, jsonpath, hostip = getConfig()
-    # if IP is private, determine external ip via lookup
-    if (ipaddress.ip_address(hostip).is_private):
-        hostip = urllib.request.urlopen("http://showip.net").read().decode('utf-8')
-        print("Elasticpot: IP in config file is private. Determined the public IP %s" % hostip)
-    srcport = 44927 # Cannot be retrieved via bottles request api, this is just a dummy port
+config = readConfig()
+username, token, server, nodeid, ignorecert, ewssender, jsonpath, hostip = getConfig(config)
+
+# if IP is private, determine external ip via lookup
+if (ipaddress.ip_address(hostip).is_private):
+    hostip = requests.get("https://ifconfig.co/json").json()['ip']
+    print("Elasticpot: IP in config file is private. Determined the public IP %s" % hostip)
+srcport = 44927 # Cannot be retrieved via bottles request api, this is just a dummy port
+    
+outputter = Outputter(config)
 # done Initialization
 
 # run server

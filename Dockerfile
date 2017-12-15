@@ -15,11 +15,12 @@ RUN \
   adduser -S -H -s /bin/false -D elasticpot
 
 COPY --from=builder /app /app
-COPY templates/ /app/src/templates/
-COPY main.py /app/src/main.py
+COPY elasticpot /app/src/elasticpot
 
 WORKDIR /app/src
 EXPOSE 9200
 USER elasticpot
 
-CMD ["/app/bin/python", "/app/src/main.py"]
+ENV PYTHONUNBUFFERED 1
+
+CMD ["/app/bin/python", "-m", "elasticpot"]

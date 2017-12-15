@@ -3,5 +3,7 @@ version: "3"
 services:
   elasticpot:
     build: .
+    environment:
+    - OUTPUT_CONSOLE_ENABLED=true
     ports:
      - "127.0.0.1:9200:9200"
