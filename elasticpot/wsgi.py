@@ -96,11 +96,9 @@ def createRaw(request):
 
 	# Generate raw http-request manually
     requestheaders=httpreq + " " + request.environ.get('SERVER_PROTOCOL') + "\n"
-    requestheaders+="Host: "+ request.get_header('Host') + "\n"
-    requestheaders+="User-Agent: "+ request.get_header('User-Agent') + "\n"
-    requestheaders+="Accept: "+ request.get_header('Accept') + "\n"
-    requestheaders+="Content-Length: "+ request.get_header('Content-Length') + "\n"
-    requestheaders+="Content-Type: "+ request.get_header('Content-Type') + "\n" + "\n"
+
+    for header in request.headers:
+        requestheaders += header + ': ' + request.headers[header] + '\n'
     if request.method == "POST":
         requestheaders+=postContent+"\n"
 
