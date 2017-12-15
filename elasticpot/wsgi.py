@@ -1,4 +1,4 @@
-from bottle import route, run, request, error, default_app
+from bottle import route, run, request, response, error, default_app
 import requests
 import os
 import configparser
@@ -134,6 +134,7 @@ def logData(querystring, postdata, ip):
 # Handle index site
 @route('/', method='GET')
 def index():
+    response.content_type = 'application/json'
 
     txt = open(os.path.join(template_folder, 'index.txt'))
     indexData = txt.read()
@@ -146,6 +147,8 @@ def index():
 # handle irrelevant / error requests
 @error(404)
 def error404(error):
+    response.content_type = 'application/json'
+
     txt = open(os.path.join(template_folder, '404.txt'))
     indexData = txt.read()
 
