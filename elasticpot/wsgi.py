@@ -1,4 +1,4 @@
-from bottle import route, run, request, response, error, default_app
+from bottle import route, run, request, response, error, default_app, hook
 import requests
 import os
 import configparser
@@ -79,35 +79,8 @@ def readConfig():
     return config
 
 
-# re-assemble raw http request from request headers, return base64 encoded
-def createRaw(request):
-    # Generate querystring
-    if request.query_string=="":
-         querystring=""
-    else:
-        querystring= "?"+ request.query_string
-    httpreq = request.method + " " +request.path + querystring
-
-    # Get post content
-    if request.method == "POST":
-        postContent = ""
-        for l in request.body:
-            postContent += l.decode("utf-8")
-
-	# Generate raw http-request manually
-    requestheaders=httpreq + " " + request.environ.get('SERVER_PROTOCOL') + "\n"
-
-    for header in request.headers:
-        requestheaders += header + ': ' + request.headers[header] + '\n'
-    if request.method == "POST":
-        requestheaders+=postContent+"\n"
-
-    # base64 encode
-    requestheaders64=base64.b64encode(requestheaders.encode('UTF-8')).decode('ascii')
-    return requestheaders64
-
-
 # Send data to either logfile (for ewsposter, location from ews.cfg) or directly to ews backend
+@hook('before_request')
 def logData():
     if request.query_string == "":
          querystring = ""
@@ -116,13 +89,22 @@ def logData():
 
     querystring = request.method + " " + request.path + querystring
 
+    postdata = ""
     if request.method == "POST":
-        postdata = ""
         for l in request.body:
             postdata += l.decode("utf-8")
 
-	# Create request headers for raw request
-    raw = createRaw(request)
+    # Generate raw http-request manually
+    requestheaders = querystring + " " + request.environ.get('SERVER_PROTOCOL') + "\n"
+
+    for header in request.headers:
+        requestheaders += header + ': ' + request.headers[header] + '\n'
+
+    if request.method == "POST":
+        requestheaders+=postContent+"\n"
+
+    # base64 encode
+    raw = base64.b64encode(requestheaders.encode('UTF-8')).decode('ascii')
 
     curDate = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%dT%H:%M:%S')
     data = {}
@@ -140,7 +122,9 @@ def logData():
     data2['postdata'] = postdata
     data2['raw'] = raw
     data['honeypot'] = data2
-    
+
+    print(data)
+
     outputter.send(data)
 
 
@@ -174,10 +158,6 @@ def error404(error):
 	# Log request to console
     print("Elasticpot: Access to non existing ressource: " + request.url)
 
-	# Log the data
-    logData()
-
-
     # Return data
     return indexData
 
@@ -200,21 +180,14 @@ def getindeces():
     # Log request to console
     print ("Elasticpot: Found possible attack (/_cat/indices): " + request.url)
 
-    # Log the data
-    logData()
-
     # Return data
     return indexData
 
 # handle search route (GET)
 @route('/_search', method='GET')
 def handleSearchExploitGet():
-
     # Log request to console
     print ("Elasticpot: Found possible attack (_search): " + request.url)
-
-	# Log the data
-    logData()
 
     return ""
 
@@ -222,12 +195,8 @@ def handleSearchExploitGet():
 # handle search route (POST)
 @route('/_search', method='POST')
 def handleSearchExploit():
-
     # Log request to console
     print("Elasticpot: Found possible attack (_search): " + request.url)
-
-	# Log the data
-    logData()
 
     return ""
 
@@ -240,9 +209,6 @@ def pluginhead():
 
     # Log request to console
     print("Elasticpot: Access to ElasticSearch head plugin: " + request.url)
-
-	# Log the data
-    logData()
 
     # Return data
     return indexData
