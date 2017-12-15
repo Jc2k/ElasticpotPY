@@ -1,5 +1,5 @@
-import datetime
 import os
+from urllib.parse import quote
 
 import requests
 
@@ -13,28 +13,27 @@ class Output(object):
     
     def __init__(self, config):
         self.config = config
-        self.enabled = 'username' in config or 'token' in config
+        self.enabled = config.get('enable')
     
     def send(self, event):
-        xml = EWS_TXT.replace("_IP_", ip)
-        xml = xml.replace("_TARGET_", hostip)
-        xml = xml.replace("_SRCPORT_", str(srcport))
-        xml = xml.replace("_DSTPORT_", str(hostport))
-        xml = xml.replace("_USERNAME_", username)
-        xml = xml.replace("_TOKEN_", token)
-        xml = xml.replace("_URL_", quote(str(querystring)))
-        xml = xml.replace("_RAW_", raw)
-        xml = xml.replace("_DATA_", quote(str(postdata)))
-        xml = xml.replace("_NODEID_", nodeid)
+        xml = EWS_TXT.replace("_IP_", event['src_ip'])
+        xml = xml.replace("_TARGET_", event['dest_ip'])
+        xml = xml.replace("_SRCPORT_", str(event['src_port']))
+        xml = xml.replace("_DSTPORT_", str(event['dest_port']))
+        xml = xml.replace("_USERNAME_", self.config['username'])
+        xml = xml.replace("_TOKEN_", self.config['token'])
+        xml = xml.replace("_URL_", quote(str(self.config['rhost_first'])))
+        xml = xml.replace("_RAW_", event['raw'])
+        xml = xml.replace("_DATA_", quote(str(event['postdata'])))
+        xml = xml.replace("_NODEID_", self.config['elasticpot']['nodeid'])
 
-        curDate = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S')
-
-        xml = xml.replace("_TIME_", curDate)
+        xml = xml.replace("_TIME_", event['timestamp'])
 
         headers = {'Content-Type': 'application/xml'}
 
         # fix ignorecert to verifycert logic
 
+        ignorecert = self.config.get('ignorecert', '')
         if (ignorecert == None):
             ignorecert = True
         elif (ignorecert == "true"):
