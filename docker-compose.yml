@@ -1,9 +1,19 @@
 version: "3"
 
 services:
+  hpfeeds:
+    build:
+      context: hpfeeds_broker
+
   elasticpot:
     build: .
     environment:
     - OUTPUT_CONSOLE_ENABLED=true
+    - OUTPUT_HPFEEDS_ENABLED=true
+    - OUTPUT_HPFEEDS_IDENT=elasticpot
+    - OUTPUT_HPFEEDS_SECRET=elasticpot
+    - OUTPUT_HPFEEDS_CHANNEL=elasticpot
+    - OUTPUT_HPFEEDS_HOST=hpfeeds
+    - OUTPUT_HPFEEDS_PORT=20000
     ports:
      - "127.0.0.1:9200:9200"

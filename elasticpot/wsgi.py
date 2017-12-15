@@ -54,6 +54,11 @@ def readConfig():
 
     config['output_hpfeeds'] = {
         'enabled': 'False',
+        'host': 'localhost',
+        'port': '',
+        'ident': '',
+        'secret': '',
+        'channel': 'elasticpot',
     }
 
     if os.path.exists(configfile):
@@ -120,11 +125,11 @@ def logData(postdata):
     data['event_type'] = "alert"
     data['src_ip'] = request.environ.get('REMOTE_ADDR')
     data['src_port'] = request.environ.get('REMOTE_PORT', 44927)
-    data['dest_ip'] = self.config['main']['ip']
+    data['dest_ip'] = config['main']['ip']
     data['dest_port'] = request.environ['SERVER_PORT']
     data2 = {}
     data2['name'] = "Elasticpot"
-    data2['nodeid'] = self.config['elasticpot']['nodeid']
+    data2['nodeid'] = config['elasticpot']['nodeid']
     data2['name'] = "Elasticpot"
     data2['query'] = querystring
     data2['postdata'] = postdata
@@ -233,8 +238,6 @@ def handleSearchExploit():
 # handle head plugin
 @route('/_plugin/head')
 def pluginhead():
-    print (request.environ)
-
     txt = open(os.path.join(template_folder, 'pluginhead.txt'))
     indexData = txt.read()
 
