@@ -23,4 +23,4 @@ USER elasticpot
 
 ENV PYTHONUNBUFFERED 1
 
-CMD ["/app/bin/python", "-m", "elasticpot"]
+CMD ["/app/bin/gunicorn", "-b", "0.0.0.0:9200", "elasticpot.wsgi:application"]

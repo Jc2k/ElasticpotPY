@@ -1,4 +1,4 @@
-from bottle import route, run, request, error
+from bottle import route, run, request, error, default_app
 import requests
 import os
 import configparser
@@ -17,7 +17,6 @@ from .outputs import Outputter
 ##########################
 
 configfile = "elasticpot.cfg"   # point to elasticpot.cfg or an ews.cfg if you use ewsposter
-hostport = 9200                 # port to run elasticpot on
 template_folder = os.path.join(os.path.dirname(__file__), 'templates')
 
 ##########################
@@ -120,9 +119,9 @@ def logData(querystring, postdata, ip,raw):
     data['timestamp'] = curDate
     data['event_type'] = "alert"
     data['src_ip'] = ip
-    data['src_port'] = srcport
+    data['src_port'] = request.environ.get('REMOTE_PORT', 44927)
     data['dest_ip'] = hostip
-    data['dest_port'] = hostport
+    data['dest_port'] = request.environ['SERVER_PORT']
     data2 = {}
     data2['name'] = "Elasticpot"
     data2['nodeid'] = nodeid
@@ -131,6 +130,8 @@ def logData(querystring, postdata, ip,raw):
     data2['postdata'] = postdata
     data2['raw'] = raw
     data['honeypot'] = data2
+    
+    print(data)
     
     outputter.send(data)
 
@@ -273,6 +274,8 @@ def handleSearchExploit():
 # handle head plugin
 @route('/_plugin/head')
 def pluginhead():
+    print (request.environ)
+
     txt = open(os.path.join(template_folder, 'pluginhead.txt'))
     indexData = txt.read()
 
@@ -316,10 +319,8 @@ username, token, server, nodeid, ignorecert, ewssender, jsonpath, hostip = getCo
 if (ipaddress.ip_address(hostip).is_private):
     hostip = requests.get("https://ifconfig.co/json").json()['ip']
     print("Elasticpot: IP in config file is private. Determined the public IP %s" % hostip)
-srcport = 44927 # Cannot be retrieved via bottles request api, this is just a dummy port
     
 outputter = Outputter(config)
 # done Initialization
 
-# run server
-run(host='0.0.0.0', port=hostport)
+application = default_app()

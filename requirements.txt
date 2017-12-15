@@ -2,7 +2,8 @@ bottle==0.12.13
 certifi==2017.11.5
 chardet==3.0.4
 configparser==3.5.0
-datetime==4.2
+DateTime==4.2
+gunicorn==19.7.1
 idna==2.6
 pytz==2017.3
 requests==2.18.4
