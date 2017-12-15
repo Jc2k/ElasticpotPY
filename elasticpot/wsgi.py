@@ -103,7 +103,14 @@ def createRaw(request):
 
 
 # Send data to either logfile (for ewsposter, location from ews.cfg) or directly to ews backend
-def logData(querystring, postdata, ip):
+def logData(postdata, ip):
+    if request.query_string == "":
+         querystring = ""
+    else:
+        querystring = "?" + request.query_string
+
+    querystring = request.method + " " + request.path + querystring
+
 	# Create request headers for raw request
     raw = createRaw(request)
 
@@ -161,15 +168,8 @@ def error404(error):
     print("Elasticpot: Access to non existing ressource: " + request.url + " " + postContent)
     ip = request.environ.get('REMOTE_ADDR')
 
-    # Generate querystring
-    if request.query_string=="":
-         querystring=""
-    else:
-        querystring= "?"+ request.query_string
-    httpreq = request.method + " " +request.path + querystring
-
 	# Log the data
-    logData(httpreq, postContent, ip)
+    logData(postContent, ip)
 
 
     # Return data
@@ -196,15 +196,8 @@ def getindeces():
     print ("Elasticpot: Found possible attack (/_cat/indices): " + request.url)
     ip = request.environ.get('REMOTE_ADDR')
 
-    # Generate querystring
-    if request.query_string=="":
-         querystring=""
-    else:
-        querystring= "?"+ request.query_string
-    httpreq = request.method + " " +request.path + querystring
-
     # Log the data
-    logData(httpreq, postContent, ip)
+    logData(postContent, ip)
 
     # Return data
     return indexData
@@ -218,15 +211,8 @@ def handleSearchExploitGet():
     print ("Elasticpot: Found possible attack (_search): " + request.url)
     ip = request.environ.get('REMOTE_ADDR')
 
-    # Generate querystring
-    if request.query_string=="":
-         querystring=""
-    else:
-        querystring= "?"+ request.query_string
-    httpreq = request.method + " " +request.path + querystring
-
 	# Log the data
-    logData(httpreq, postContent, ip)
+    logData(postContent, ip)
 
     return ""
 
@@ -242,15 +228,8 @@ def handleSearchExploit():
     print("Elasticpot: Found possible attack (_search): " + request.url + postContent)
     ip = request.environ.get('REMOTE_ADDR')
 
-    # Generate querystring
-    if request.query_string=="":
-         querystring=""
-    else:
-        querystring= "?"+ request.query_string
-    httpreq = request.method + " " +request.path + querystring
-
 	# Log the data
-    logData(httpreq, postContent, ip)
+    logData(postContent, ip)
 
     return ""
 
@@ -270,15 +249,8 @@ def pluginhead():
     print("Elasticpot: Access to ElasticSearch head plugin: " + request.url + " " + postContent)
     ip = request.environ.get('REMOTE_ADDR')
 
-	# Generate querystring
-    if request.query_string=="":
-         querystring=""
-    else:
-        querystring= "?"+ request.query_string
-    httpreq = request.method + " " +request.path + querystring
-
 	# Log the data
-    logData(httpreq, postContent, ip)
+    logData(postContent, ip)
 
     # Return data
     return indexData
