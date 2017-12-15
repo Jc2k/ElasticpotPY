@@ -67,6 +67,11 @@ def readConfig():
                 print("Setting {}.{} from environment".format(section, key))
                 config[section][key] = os.environ[envkey]
 
+    if not config['main']['ip'] or not ipaddress.ip_address(config['main']['ip']).is_private:
+        host_ip = requests.get('https://ifconfig.co/json').json()['ip']
+        print("Elasticpot: IP in config file is private. Determined the public IP %s" % host_ip)
+        config['main']['ip'] = host_ip
+
     return config
 
 
@@ -313,12 +318,6 @@ def pluginhead():
 config = readConfig()
 username, token, server, nodeid, ignorecert, ewssender, jsonpath, hostip = getConfig(config)
 
-# if IP is private, determine external ip via lookup
-if (ipaddress.ip_address(hostip).is_private):
-    hostip = requests.get("https://ifconfig.co/json").json()['ip']
-    print("Elasticpot: IP in config file is private. Determined the public IP %s" % hostip)
-    
 outputter = Outputter(config)
-# done Initialization
 
 application = default_app()
