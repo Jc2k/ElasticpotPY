@@ -103,7 +103,7 @@ def createRaw(request):
 
 
 # Send data to either logfile (for ewsposter, location from ews.cfg) or directly to ews backend
-def logData(postdata, ip):
+def logData(postdata):
     if request.query_string == "":
          querystring = ""
     else:
@@ -118,7 +118,7 @@ def logData(postdata, ip):
     data = {}
     data['timestamp'] = curDate
     data['event_type'] = "alert"
-    data['src_ip'] = ip
+    data['src_ip'] = request.environ.get('REMOTE_ADDR')
     data['src_port'] = request.environ.get('REMOTE_PORT', 44927)
     data['dest_ip'] = self.config['main']['ip']
     data['dest_port'] = request.environ['SERVER_PORT']
@@ -166,10 +166,9 @@ def error404(error):
     for l in request.body:
         postContent += l.decode("utf-8")
     print("Elasticpot: Access to non existing ressource: " + request.url + " " + postContent)
-    ip = request.environ.get('REMOTE_ADDR')
 
 	# Log the data
-    logData(postContent, ip)
+    logData(postContent)
 
 
     # Return data
@@ -194,10 +193,9 @@ def getindeces():
     # Log request to console
     postContent = ""
     print ("Elasticpot: Found possible attack (/_cat/indices): " + request.url)
-    ip = request.environ.get('REMOTE_ADDR')
 
     # Log the data
-    logData(postContent, ip)
+    logData(postContent)
 
     # Return data
     return indexData
@@ -209,10 +207,9 @@ def handleSearchExploitGet():
     # Log request to console
     postContent = ""
     print ("Elasticpot: Found possible attack (_search): " + request.url)
-    ip = request.environ.get('REMOTE_ADDR')
 
 	# Log the data
-    logData(postContent, ip)
+    logData(postContent)
 
     return ""
 
@@ -226,10 +223,9 @@ def handleSearchExploit():
     for l in request.body:
         postContent += l.decode("utf-8")
     print("Elasticpot: Found possible attack (_search): " + request.url + postContent)
-    ip = request.environ.get('REMOTE_ADDR')
 
 	# Log the data
-    logData(postContent, ip)
+    logData(postContent)
 
     return ""
 
@@ -247,10 +243,9 @@ def pluginhead():
     for l in request.body:
         postContent += l.decode("utf-8")
     print("Elasticpot: Access to ElasticSearch head plugin: " + request.url + " " + postContent)
-    ip = request.environ.get('REMOTE_ADDR')
 
 	# Log the data
-    logData(postContent, ip)
+    logData(postContent)
 
     # Return data
     return indexData
