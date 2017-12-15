@@ -114,8 +114,11 @@ def createRaw(request):
 
 
 # Send data to either logfile (for ewsposter, location from ews.cfg) or directly to ews backend
-def logData(querystring, postdata, ip,raw):
+def logData(querystring, postdata, ip):
     global username, token, server, nodeid, ignorecert, ewssender, jsonpath, hostip
+
+	# Create request headers for raw request
+    raw = createRaw(request)
 
     curDate = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%dT%H:%M:%S')
     data = {}
@@ -177,11 +180,8 @@ def error404(error):
         querystring= "?"+ request.query_string
     httpreq = request.method + " " +request.path + querystring
 
-	# Create request headers for raw request
-    requestheaders64=createRaw(request)
-
 	# Log the data
-    logData(httpreq, postContent, ip, requestheaders64)
+    logData(httpreq, postContent, ip)
 
 
     # Return data
@@ -215,11 +215,8 @@ def getindeces():
         querystring= "?"+ request.query_string
     httpreq = request.method + " " +request.path + querystring
 
-    # Create request headers for raw request
-    requestheaders64=createRaw(request)
-
     # Log the data
-    logData(httpreq, postContent, ip, requestheaders64)
+    logData(httpreq, postContent, ip)
 
     # Return data
     return indexData
@@ -240,11 +237,8 @@ def handleSearchExploitGet():
         querystring= "?"+ request.query_string
     httpreq = request.method + " " +request.path + querystring
 
-    # Create request headers for raw request
-    requestheaders64=createRaw(request)
-
 	# Log the data
-    logData(httpreq, postContent, ip, requestheaders64)
+    logData(httpreq, postContent, ip)
 
     return ""
 
@@ -266,11 +260,8 @@ def handleSearchExploit():
         querystring= "?"+ request.query_string
     httpreq = request.method + " " +request.path + querystring
 
-	# Create request headers for raw request
-    requestheaders64=createRaw(request)
-
 	# Log the data
-    logData(httpreq, postContent, ip, requestheaders64)
+    logData(httpreq, postContent, ip)
 
     return ""
 
@@ -296,11 +287,8 @@ def pluginhead():
         querystring= "?"+ request.query_string
     httpreq = request.method + " " +request.path + querystring
 
-	# Create request headers for raw request
-    requestheaders64=createRaw(request)
-
 	# Log the data
-    logData(httpreq, postContent, ip, requestheaders64)
+    logData(httpreq, postContent, ip)
 
     # Return data
     return indexData
