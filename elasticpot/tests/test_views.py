@@ -34,4 +34,4 @@ class TestViews(unittest.TestCase):
     def test_pluginhead(self):
         pluginhead = views.pluginhead()
         assert "elasticsearch-head" in pluginhead
-        assert response.content_type = "text/html"
+        assert response.content_type == "text/html"

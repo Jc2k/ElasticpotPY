@@ -40,6 +40,19 @@ Install dependencies e.g. with pip
 pip install -r requirements.txt
 ```
 
+If you want to run the tests, install py.test and flake8 with:
+
+```
+pip install -r dev.txt
+```
+
+And then run them with:
+
+```
+flake8 elasticpot
+py.test elasticpot
+```
+
 See the `Dockerfile` for the dependencies in general.
 
 or see the ansible playbook :)

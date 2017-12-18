@@ -7,7 +7,7 @@ logger = logging.getLogger('elasticpot.outputs')
 
 
 class Outputter(object):
-    
+
     def __init__(self, config):
         self.outputs = []
 
@@ -17,10 +17,12 @@ class Outputter(object):
                 if name not in globals():
                     print("Unknown output plugin: {}".format(name))
                     continue
-                    
+
                 enabled = config[output].get('enabled', 'False').lower()
                 if enabled in ('1', 'on', 'true', 'yes'):
-                    self.outputs.append(getattr(globals()[name], "Output")(config[output]))
+                    self.outputs.append(
+                        getattr(globals()[name], "Output")(config[output])
+                    )
 
         logger.debug('{} outputs are enabled'.format(len(self.outputs)))
 

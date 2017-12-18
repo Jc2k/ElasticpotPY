@@ -6,18 +6,16 @@ import hashlib
 import logging
 import time
 import threading
-import ssl
 
 logger = logging.getLogger('pyhpfeeds')
 
 
 BUFSIZ = 16384
 
-OP_ERROR        = 0
-OP_INFO         = 1
-OP_AUTH         = 2
-OP_PUBLISH      = 3
-OP_SUBSCRIBE    = 4
+OP_ERROR = 0
+OP_INFO = 1
+OP_AUTH = 2
+OP_PUBLISH = 3
 
 MAXBUF = 1024**2
 
@@ -26,20 +24,20 @@ SIZES = {
     OP_INFO: 5 + 256 + 20,
     OP_AUTH: 5 + 256 + 20,
     OP_PUBLISH: 5 + MAXBUF,
-    OP_SUBSCRIBE: 5 + 256*2,
 }
 
 
 def strpack8(x):
     # packs a string with 1 byte length field
-    if isinstance(x, str): x = x.encode('latin1')
+    if isinstance(x, str):
+        x = x.encode('latin1')
     return struct.pack('!B', len(x)) + x
 
 
 def strunpack8(x):
     # unpacks a string with 1 byte length field
-    l = x[0]
-    return x[1:1+l], x[1+l:]
+    length = x[0]
+    return x[1:1+length], x[1+length:]
 
 
 def msghdr(op, data):
@@ -50,11 +48,6 @@ def msgpublish(ident, chan, data):
     return msghdr(OP_PUBLISH, strpack8(ident) + strpack8(chan) + data)
 
 
-def msgsubscribe(ident, chan):
-    if isinstance(chan, str): chan = chan.encode('latin1')
-    return msghdr(OP_SUBSCRIBE, strpack8(ident) + chan)
-
-
 def msgauth(rand, ident, secret):
     hash = hashlib.sha1(bytes(rand) + secret.encode('utf-8')).digest()
     return msghdr(OP_AUTH, strpack8(ident) + hash)
@@ -63,8 +56,10 @@ def msgauth(rand, ident, secret):
 class UnpackError(Exception):
     pass
 
+
 class FeedException(Exception):
     pass
+
 
 class FeedUnpacker(object):
 
@@ -102,18 +97,17 @@ class Disconnect(Exception):
 
 class Client(object):
 
-    def __init__(self, host, port, ident, secret, timeout=3, reconnect=True, sleepwait=20):
+    def __init__(self, host, port, ident, secret, timeout=3, reconnect=True):
         self.host, self.port = host, port
         self.ident, self.secret = ident, secret
         self.timeout = timeout
         self.reconnect = reconnect
-        self.sleepwait = sleepwait
+        self.sleepwait = 20
         self.brokername = 'unknown'
         self.connected = False
         self.stopped = False
         self.s = None
         self.connecting_lock = threading.Lock()
-        self.subscriptions = set()
         self.unpacker = FeedUnpacker()
 
         self.tryconnect()
@@ -130,7 +124,8 @@ class Client(object):
             logger.warn("Socket error: %s", e)
             raise Disconnect()
 
-        if not d: raise Disconnect()
+        if not d:
+            raise Disconnect()
         return d
 
     def send(self, data):
@@ -153,10 +148,14 @@ class Client(object):
                         self.connect()
                         break
                     except socket.error as e:
-                        logger.warn('Socket error while connecting: {0}'.format(e))
+                        logger.warn(
+                            'Socket error while connecting: {0}'.format(e)
+                        )
                         time.sleep(self.sleepwait)
                     except FeedException as e:
-                        logger.warn('FeedException while connecting: {0}'.format(e))
+                        logger.warn(
+                            'FeedException while connecting: {0}'.format(e)
+                        )
                         time.sleep(self.sleepwait)
                     except Disconnect as e:
                         logger.warn('Disconnect while connecting.')
@@ -168,7 +167,13 @@ class Client(object):
         logger.info('connecting to {0}:{1}'.format(self.host, self.port))
 
         # Try other resolved addresses (IPv4 or IPv6) if failed.
-        ainfos = socket.getaddrinfo(self.host, 1, socket.AF_UNSPEC, socket.SOCK_STREAM)
+        ainfos = socket.getaddrinfo(
+            self.host,
+            1,
+            socket.AF_UNSPEC,
+            socket.SOCK_STREAM
+        )
+
         for ainfo in ainfos:
             addr_family = ainfo[0]
             addr = ainfo[4][0]
@@ -176,26 +181,29 @@ class Client(object):
                 self.s = self.makesocket(addr_family)
                 self.s.settimeout(self.timeout)
                 self.s.connect((addr, self.port))
-            except:
-                import traceback
-                traceback.print_exc()
-                #print 'Could not connect to broker. %s[%s]' % (self.host, addr)
+            except Exception:
+                logger.exeception('Could not connect to {0}[{1}]'.format(
+                    self.host,
+                    addr,
+                ))
                 continue
             else:
                 self.connected = True
                 break
 
-        if self.connected == False:
-            raise FeedException('Could not connect to broker [%s].' % (self.host))
+        if self.connected is False:
+            raise FeedException('Could not connect to broker %s' % (self.host))
 
-        try: d = self.s.recv(BUFSIZ)
-        except socket.timeout: raise FeedException('Connection receive timeout.')
+        try:
+            d = self.s.recv(BUFSIZ)
+        except socket.timeout:
+            raise FeedException('Connection receive timeout.')
 
         self.unpacker.feed(d)
         for opcode, data in self.unpacker:
             if opcode == OP_INFO:
                 name, rand = strunpack8(data)
-                logger.debug('info message name: {0}, rand: {1}'.format(name, repr(rand)))
+                logger.debug('OP_INFO name:{0}, rand:{1!r}'.format(name, rand))
                 self.brokername = name
 
                 self.send(msgauth(rand, self.ident, self.secret))
@@ -209,79 +217,16 @@ class Client(object):
         if sys.platform in ('linux2', ):
             self.s.setsockopt(socket.SOL_TCP, socket.TCP_KEEPIDLE, 10)
 
-    def run(self, message_callback, error_callback):
-        while not self.stopped:
-            self._subscribe()
-            while self.connected:
-                try:
-                    d = self.recv()
-                    self.unpacker.feed(d)
-
-                    for opcode, data in self.unpacker:
-                        if opcode == OP_PUBLISH:
-                            rest = buffer(data, 0)
-                            ident, rest = rest[1:1+ord(rest[0])], buffer(rest, 1+ord(rest[0]))
-                            chan, content = rest[1:1+ord(rest[0])], buffer(rest, 1+ord(rest[0]))
-
-                            message_callback(str(ident), str(chan), content)
-                        elif opcode == OP_ERROR:
-                            error_callback(data)
-
-                except Disconnect:
-                    self.connected = False
-                    logger.info('Disconnected from broker.')
-                    break
-
-                # end run loops if stopped
-                if self.stopped: break
-
-            if not self.stopped and self.reconnect:
-                # connect again if disconnected
-                self.tryconnect()
-
-        logger.info('Stopped, exiting run loop.')
-
-    def wait(self, timeout=1):
-        self.s.settimeout(timeout)
-
-        try:
-            d = self.recv()
-            if not d: return None
-
-            self.unpacker.feed(d)
-            for opcode, data in self.unpacker:
-                if opcode == OP_ERROR:
-                    return data
-        except Disconnect:
-            pass
-
-        return None
-
     def close_old(self):
         if self.s:
-            try: self.s.close()
-            except: pass
-
-    def subscribe(self, chaninfo):
-        if type(chaninfo) == str:
-            chaninfo = [chaninfo,]
-        for c in chaninfo:
-            self.subscriptions.add(c)
-
-    def _subscribe(self):
-        for c in self.subscriptions:
             try:
-                logger.debug('Sending subscription for {0}.'.format(c))
-                self.send(msgsubscribe(self.ident, c))
-            except Disconnect:
-                self.connected = False
-                logger.info('Disconnected from broker (in subscribe).')
-                if not self.reconnect: raise
-                break
+                self.s.close()
+            except Exception:
+                pass
 
     def publish(self, chaninfo, data):
         if type(chaninfo) == str:
-            chaninfo = [chaninfo,]
+            chaninfo = [chaninfo]
         for c in chaninfo:
             try:
                 self.send(msgpublish(self.ident, c, data.encode('utf-8')))
@@ -297,12 +242,14 @@ class Client(object):
         self.stopped = True
 
     def close(self):
-        try: self.s.close()
-        except: logger.debug('Socket exception when closing (ignored though).')
+        try:
+            self.s.close()
+        except Exception:
+            logger.debug('Socket exception when closing (ignored though).')
 
 
 class Output(object):
-    
+
     def __init__(self, config):
         self.channel = config['channel']
         self._feed = Client(

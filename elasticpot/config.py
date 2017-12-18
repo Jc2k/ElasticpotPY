@@ -1,19 +1,12 @@
-from bottle import route, run, request, response, error, default_app, hook
 import requests
 import os
 import configparser
-import base64
-import datetime
 import ipaddress
-import urllib.request
-import json
+import logging
 
+logger = logging.getLogger('elasticpot.wsgi')
 
-##########################
-# Config section
-##########################
-
-configfile = "elasticpot.cfg"   # point to elasticpot.cfg or an ews.cfg if you use ewsposter
+configfile = "elasticpot.cfg"
 
 
 def readConfig():
@@ -61,12 +54,24 @@ def readConfig():
         for key in config[section].keys():
             envkey = '{}_{}'.format(section, key).upper()
             if envkey in os.environ:
-                print("Setting {}.{} from environment".format(section, key))
+                logger.debug(
+                    "Setting {}.{} from environment".format(section, key)
+                )
                 config[section][key] = os.environ[envkey]
 
-    if not config['main']['ip'] or not ipaddress.ip_address(config['main']['ip']).is_private:
+    fetch_external_ip = False
+    if not config['main']['ip']:
+        fetch_external_ip = True
+    else:
+        try:
+            address = ipaddress.ip_address(config['main']['ip'])
+            fetch_external_ip = address.is_private
+        except ValueError:
+            fetch_external_ip = True
+
+    if fetch_external_ip:
         host_ip = requests.get('https://ifconfig.co/json').json()['ip']
-        print("Elasticpot: IP in config file is private. Determined the public IP %s" % host_ip)
+        logger.debug('Fetched external IP: {}'.format(host_ip))
         config['main']['ip'] = host_ip
 
     return config

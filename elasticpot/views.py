@@ -1,9 +1,7 @@
 from bottle import route, request, response, error, hook
-import requests
 import os
 import base64
 import datetime
-import urllib.request
 import logging
 
 logger = logging.getLogger("elasticpot.views")
@@ -14,7 +12,7 @@ template_folder = os.path.join(os.path.dirname(__file__), 'templates')
 @hook('before_request')
 def logData():
     if request.query_string == "":
-         querystring = ""
+        querystring = ""
     else:
         querystring = "?" + request.query_string
 
@@ -26,18 +24,22 @@ def logData():
             postdata += l.decode("utf-8")
 
     # Generate raw http-request manually
-    requestheaders = querystring + " " + request.environ.get('SERVER_PROTOCOL') + "\n"
+    requestheaders = \
+        querystring + \
+        " " + \
+        request.environ.get('SERVER_PROTOCOL') + \
+        "\n"
 
     for header in request.headers:
         requestheaders += header + ': ' + request.headers[header] + '\n'
 
     if request.method == "POST":
-        requestheaders+=postContent+"\n"
+        requestheaders += postdata + "\n"
 
     # base64 encode
     raw = base64.b64encode(requestheaders.encode('UTF-8')).decode('ascii')
 
-    curDate = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%dT%H:%M:%S')
+    curDate = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
     data = {}
     data['timestamp'] = curDate
     data['event_type'] = "alert"
@@ -82,13 +84,13 @@ def error404(error):
 @route('/favicon.ico', method='GET')
 def favicon():
     with open(os.path.join(template_folder, 'favicon.ico.txt')) as fp:
-        fp.read())
+        return fp.read()
 
 
 # handle route to indices
 @route('/_cat/indices', method='GET')
 def getindeces():
-    logger.info ("Found possible attack (/_cat/indices): " + request.url)
+    logger.info("Found possible attack (/_cat/indices): " + request.url)
 
     with open(os.path.join(template_folder, 'getindeces.txt')) as fp:
         return fp.read()
@@ -97,7 +99,7 @@ def getindeces():
 # handle search route (GET)
 @route('/_search', method='GET')
 def handleSearchExploitGet():
-    logger.info ("Found possible attack (_search): " + request.url)
+    logger.info("Found possible attack (_search): " + request.url)
     return ""
 
 
@@ -112,6 +114,8 @@ def handleSearchExploit():
 @route('/_plugin/head')
 def pluginhead():
     logger.info("Access to ElasticSearch head plugin: " + request.url)
+
+    response.content_type = 'text/html'
 
     with open(os.path.join(template_folder, 'pluginhead.txt')) as fp:
         return fp.read()
