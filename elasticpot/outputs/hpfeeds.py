@@ -91,7 +91,7 @@ class FeedUnpacker(object):
         if len(self.buf) < ml:
             raise StopIteration('No message.')
 
-        data = bytearray(self.buf[5:ml-5])
+        data = bytearray(self.buf[5:])
         del self.buf[:ml]
         return opcode, data
 
@@ -284,7 +284,7 @@ class Client(object):
             chaninfo = [chaninfo,]
         for c in chaninfo:
             try:
-                self.send(msgpublish(self.ident, c, data))
+                self.send(msgpublish(self.ident, c, data.encode('utf-8')))
             except Disconnect:
                 self.connected = False
                 logger.info('Disconnected from broker (in publish).')

@@ -1,4 +1,9 @@
+import logging
+
 from . import console, ews, file, hpfeeds
+
+
+logger = logging.getLogger('elasticpot.outputs')
 
 
 class Outputter(object):
@@ -13,9 +18,13 @@ class Outputter(object):
                     print("Unknown output plugin: {}".format(name))
                     continue
                     
-                self.outputs.append(getattr(globals()[name], "Output")(config[output]))
-        
+                enabled = config[output].get('enabled', 'False').lower()
+                if enabled in ('1', 'on', 'true', 'yes'):
+                    self.outputs.append(getattr(globals()[name], "Output")(config[output]))
+
+        logger.debug('{} outputs are enabled'.format(len(self.outputs)))
+
     def send(self, event):
         for output in self.outputs:
-            if getattr(output, 'enabled', False):
-                output.send(event)
+            logger.debug('Sending event via output {}'.format(output))
+            output.send(event)

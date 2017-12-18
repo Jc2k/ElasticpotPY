@@ -7,21 +7,25 @@ import datetime
 import ipaddress
 import urllib.request
 import json
+import logging
 
 from .config import readConfig
 from .outputs import Outputter
+
+
+logger = logging.getLogger("elasticpot.wsgi")
 
 
 ##########################
 # Config section
 ##########################
 
-configfile = "elasticpot.cfg"   # point to elasticpot.cfg or an ews.cfg if you use ewsposter
 template_folder = os.path.join(os.path.dirname(__file__), 'templates')
 
 ##########################
 # FUNCTIONS
 ##########################
+
 
 
 # Send data to either logfile (for ewsposter, location from ews.cfg) or directly to ews backend
@@ -68,8 +72,6 @@ def logData():
     data2['raw'] = raw
     data['honeypot'] = data2
 
-    print(data)
-
     outputter.send(data)
 
 
@@ -80,6 +82,8 @@ def logData():
 # Handle index site
 @route('/', method='GET')
 def index():
+    logger.info("Scanned (/)")
+
     response.content_type = 'application/json'
 
     txt = open(os.path.join(template_folder, 'index.txt'))
@@ -98,10 +102,7 @@ def error404(error):
     txt = open(os.path.join(template_folder, '404.txt'))
     indexData = txt.read()
 
-    # DO WE WANT TO LOG THESE???
-
-	# Log request to console
-    print("Elasticpot: Access to non existing ressource: " + request.url)
+    logger.info("Access to non existing ressource: " + request.url)
 
     # Return data
     return indexData
@@ -122,8 +123,7 @@ def getindeces():
     txt = open(os.path.join(template_folder, 'getindeces.txt'))
     indexData = txt.read()
 
-    # Log request to console
-    print ("Elasticpot: Found possible attack (/_cat/indices): " + request.url)
+    logger.info ("Found possible attack (/_cat/indices): " + request.url)
 
     # Return data
     return indexData
@@ -131,8 +131,7 @@ def getindeces():
 # handle search route (GET)
 @route('/_search', method='GET')
 def handleSearchExploitGet():
-    # Log request to console
-    print ("Elasticpot: Found possible attack (_search): " + request.url)
+    logger.info ("Found possible attack (_search): " + request.url)
 
     return ""
 
@@ -140,8 +139,7 @@ def handleSearchExploitGet():
 # handle search route (POST)
 @route('/_search', method='POST')
 def handleSearchExploit():
-    # Log request to console
-    print("Elasticpot: Found possible attack (_search): " + request.url)
+    logger.info("Found possible attack (_search): " + request.url)
 
     return ""
 
@@ -152,8 +150,7 @@ def pluginhead():
     txt = open(os.path.join(template_folder, 'pluginhead.txt'))
     indexData = txt.read()
 
-    # Log request to console
-    print("Elasticpot: Access to ElasticSearch head plugin: " + request.url)
+    logger.info("Access to ElasticSearch head plugin: " + request.url)
 
     # Return data
     return indexData
@@ -167,6 +164,8 @@ def pluginhead():
 ##########################
 ##### MAIN START
 ##########################
+
+logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
 
 config = readConfig()
 outputter = Outputter(config)
