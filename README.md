@@ -1,5 +1,4 @@
-**ElasticPot - an Elasticsearch honeypot**
--------------------------------------------
+# ElasticPot - an Elasticsearch honeypot
 
 Written by Andre Vorbach and Markus Schmall
 
@@ -13,16 +12,34 @@ markus_@_mschmall_de_
 andre_@_vorbach_org
 
 
-_Installation hints:_
+## Installation hints
 
-Mac OS X:
+### Docker
 
-Use brew to install Python 3
+On any Linux, macOS or Windows system with Docker and docker-compose you can:
+
+```
+docker-compose build
+docker-compose up
+```
+
+And get a copy of the honeypot running on 127.0.0.1:9200.
+
+
+### macOS
+
+Use [brew](https://brew.sh/) to install Python 3:
+
+```
+brew install python 3
+```
 
 Install dependencies e.g. with pip
 
+```
 pip install -r requirements.txt
+```
 
-See the dockerfile for the dependencies in general.
+See the `Dockerfile` for the dependencies in general.
 
 or see the ansible playbook :)
