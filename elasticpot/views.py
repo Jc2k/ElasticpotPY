@@ -48,7 +48,6 @@ def logData():
     data2 = {}
     data2['name'] = "Elasticpot"
     data2['nodeid'] = request.app.config['elasticpot']['nodeid']
-    data2['name'] = "Elasticpot"
     data2['query'] = querystring
     data2['postdata'] = postdata
     data2['raw'] = raw
@@ -57,10 +56,6 @@ def logData():
     request.app.outputs.send(data)
 
 
-##########################
-####### SITE HANDLER
-##########################
-
 # Handle index site
 @route('/', method='GET')
 def index():
@@ -68,53 +63,41 @@ def index():
 
     response.content_type = 'application/json'
 
-    txt = open(os.path.join(template_folder, 'index.txt'))
-    indexData = txt.read()
-
-    # Not an attack
-    # Return data, do nothing
-    return indexData
+    with open(os.path.join(template_folder, 'index.txt')) as fp:
+        return fp.read()
 
 
 # handle irrelevant / error requests
 @error(404)
 def error404(error):
+    logger.info("Access to non existing resource: " + request.url)
+
     response.content_type = 'application/json'
 
-    txt = open(os.path.join(template_folder, '404.txt'))
-    indexData = txt.read()
+    with open(os.path.join(template_folder, '404.txt')) as fp:
+        return fp.read()
 
-    logger.info("Access to non existing ressource: " + request.url)
-
-    # Return data
-    return indexData
 
 # handle favicon
 @route('/favicon.ico', method='GET')
-def getindeces():
-    txt = open(os.path.join(template_folder, 'favicon.ico.txt'))
-    indexData = txt.read()
+def favicon():
+    with open(os.path.join(template_folder, 'favicon.ico.txt')) as fp:
+        fp.read())
 
-    # Not an attack
-    # Return default data, do nothing
-    return indexData
 
 # handle route to indices
 @route('/_cat/indices', method='GET')
 def getindeces():
-    txt = open(os.path.join(template_folder, 'getindeces.txt'))
-    indexData = txt.read()
-
     logger.info ("Found possible attack (/_cat/indices): " + request.url)
 
-    # Return data
-    return indexData
+    with open(os.path.join(template_folder, 'getindeces.txt')) as fp:
+        return fp.read()
+
 
 # handle search route (GET)
 @route('/_search', method='GET')
 def handleSearchExploitGet():
     logger.info ("Found possible attack (_search): " + request.url)
-
     return ""
 
 
@@ -122,17 +105,13 @@ def handleSearchExploitGet():
 @route('/_search', method='POST')
 def handleSearchExploit():
     logger.info("Found possible attack (_search): " + request.url)
-
     return ""
 
 
 # handle head plugin
 @route('/_plugin/head')
 def pluginhead():
-    txt = open(os.path.join(template_folder, 'pluginhead.txt'))
-    indexData = txt.read()
-
     logger.info("Access to ElasticSearch head plugin: " + request.url)
 
-    # Return data
-    return indexData
+    with open(os.path.join(template_folder, 'pluginhead.txt')) as fp:
+        return fp.read()
