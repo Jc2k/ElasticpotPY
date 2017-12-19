@@ -4,14 +4,14 @@ import unittest.mock
 
 from bottle import Bottle, default_app, request
 
-from elasticpot.outputs import file
+from elasticpot.outputs import console
 
 
-class TestFileOutput(unittest.TestCase):
+class TestConsoleOutput(unittest.TestCase):
 
     def test_send_event(self):
-        output = file.Output({'jsonpath': '/dev/null'})
-        with unittest.mock.patch.object(output, '_outputfile') as fp:
+        output = console.Output({})
+        with unittest.mock.patch('sys.stdout') as stdout:
             app = Bottle()
             app.config = {'elasticpot': {'nodeid': 'foo'}}
             default_app.push(app)
@@ -29,9 +29,9 @@ class TestFileOutput(unittest.TestCase):
                 })
             finally:
                 default_app.pop()
-            assert fp.write.call_count == 1
-            assert fp.write.call_args[0][0].endswith('\n')
+            '''assert stdout.write.call_count == 1'''
+            assert stdout.write.call_args[0][0].endswith('\n')
 
-            event = json.loads(fp.write.call_args[0][0])
+            event = json.loads(stdout.write.call_args_list[0][0][0])
             assert isinstance(event, dict)
-            assert event['honeypot']['name'] == 'Elasticpot'
+            assert event['src_ip'] == '127.0.0.1'

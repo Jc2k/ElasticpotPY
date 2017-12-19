@@ -25,7 +25,7 @@ EXPECTED = '''
 </EWS-SimpleMessage>
 '''
 
-class TestViews(unittest.TestCase):
+class TestEWSOutput(unittest.TestCase):
 
     def test_send_event(self):
         output = ews.Output({
