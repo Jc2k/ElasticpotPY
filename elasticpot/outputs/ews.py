@@ -2,6 +2,7 @@ import os
 from urllib.parse import quote
 import logging
 
+from bottle import request
 import requests
 
 
@@ -28,7 +29,7 @@ class Output(object):
         xml = xml.replace('_URL_', quote(str(self.config['rhost_first'])))
         xml = xml.replace('_RAW_', event['raw'])
         xml = xml.replace('_DATA_', quote(str(event['body'])))
-        xml = xml.replace('_NODEID_', self.config['elasticpot']['nodeid'])
+        xml = xml.replace('_NODEID_', request.app.config['elasticpot']['nodeid'])
 
         xml = xml.replace('_TIME_', event['timestamp'])
 

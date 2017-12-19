@@ -30,7 +30,6 @@ class TestViews(unittest.TestCase):
             finally:
                 default_app.pop()
             assert fp.write.call_count == 1
-            print(fp.write.call_args[0])
             assert fp.write.call_args[0][0].endswith('\n')
 
             event = json.loads(fp.write.call_args[0][0])
