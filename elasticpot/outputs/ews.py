@@ -27,7 +27,7 @@ class Output(object):
         xml = xml.replace('_TOKEN_', self.config['token'])
         xml = xml.replace('_URL_', quote(str(self.config['rhost_first'])))
         xml = xml.replace('_RAW_', event['raw'])
-        xml = xml.replace('_DATA_', quote(str(event['postdata'])))
+        xml = xml.replace('_DATA_', quote(str(event['body'])))
         xml = xml.replace('_NODEID_', self.config['elasticpot']['nodeid'])
 
         xml = xml.replace('_TIME_', event['timestamp'])
@@ -36,7 +36,7 @@ class Output(object):
 
         # fix ignorecert to verifycert logic
 
-        ignorecert = self.config.get('ignorecert', '')
+        ignorecert = self.config.get('ignorecert', None)
         if (ignorecert is None):
             ignorecert = True
         elif (ignorecert == 'true'):

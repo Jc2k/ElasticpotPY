@@ -11,49 +11,47 @@ template_folder = os.path.join(os.path.dirname(__file__), 'templates')
 
 @hook('before_request')
 def logData():
-    if request.query_string == "":
-        querystring = ""
-    else:
-        querystring = "?" + request.query_string
+    querystring = request.path
+    if request.query_string:
+        querystring += '?' + request.query_string
 
-    querystring = request.method + " " + request.path + querystring
+    headers = '\n'.join(
+        ': '.join((h, request.headers[h])) for h in request.headers
+    )
 
-    postdata = ""
-    if request.method == "POST":
-        for l in request.body:
-            postdata += l.decode("utf-8")
+    body = ''
+    if request.method in ('POST', 'PUT'):
+        body = ''.join(chunk.decode('utf-8') for chunk in request.body)
 
-    # Generate raw http-request manually
-    requestheaders = \
-        querystring + \
-        " " + \
-        request.environ.get('SERVER_PROTOCOL') + \
-        "\n"
-
-    for header in request.headers:
-        requestheaders += header + ': ' + request.headers[header] + '\n'
-
-    if request.method == "POST":
-        requestheaders += postdata + "\n"
+    full_request = ''.join((
+        request.method,
+        ' ',
+        querystring,
+        ' ',
+        request.environ.get('SERVER_PROTOCOL', 'HTTP/1.0'),
+        '\n',
+        headers,
+        '\n\n',
+        body
+    ))
 
     # base64 encode
-    raw = base64.b64encode(requestheaders.encode('UTF-8')).decode('ascii')
+    raw = base64.b64encode(full_request.encode('utf-8')).decode('ascii')
 
     curDate = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
     data = {}
     data['timestamp'] = curDate
-    data['event_type'] = "alert"
     data['src_ip'] = request.environ.get('REMOTE_ADDR')
     data['src_port'] = request.environ.get('REMOTE_PORT', 44927)
     data['dest_ip'] = request.app.config['main']['ip']
     data['dest_port'] = request.environ['SERVER_PORT']
-    data2 = {}
-    data2['name'] = "Elasticpot"
-    data2['nodeid'] = request.app.config['elasticpot']['nodeid']
-    data2['query'] = querystring
-    data2['postdata'] = postdata
-    data2['raw'] = raw
-    data['honeypot'] = data2
+
+    data['method'] = request.method
+    data['querystring'] = querystring
+    data['headers'] = headers
+    data['body'] = body
+    data['request'] = full_request
+    data['raw'] = raw
 
     request.app.outputs.send(data)
 
