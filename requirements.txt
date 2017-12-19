@@ -4,6 +4,7 @@ chardet==3.0.4
 configparser==3.5.0
 DateTime==4.2
 gunicorn==19.7.1
+hpfeeds3==0.0.1
 idna==2.6
 pytz==2017.3
 requests==2.18.4
