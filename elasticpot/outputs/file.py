@@ -25,4 +25,4 @@ class Output(object):
             'raw': event['raw'],
         }
 
-        self._outputfile.write(json.dumps(event) + '\n')
+        self._outputfile.write(json.dumps(data) + '\n')
