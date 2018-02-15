@@ -23,4 +23,6 @@ USER elasticpot
 
 ENV PYTHONUNBUFFERED 1
 
-CMD ["/app/bin/gunicorn", "-b", "0.0.0.0:9200", "elasticpot.wsgi:application"]
+COPY gunicorn.conf /etc/gunicorn.conf
+
+CMD ["/app/bin/gunicorn", "-b", "0.0.0.0:9200", "-c", "/etc/gunicorn.conf", "elasticpot.wsgi:application"]

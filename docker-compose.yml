@@ -15,5 +15,11 @@ services:
     - OUTPUT_HPFEEDS_CHANNEL=elasticpot
     - OUTPUT_HPFEEDS_HOST=hpfeeds
     - OUTPUT_HPFEEDS_PORT=20000
+    - TMP_DIR=/var/run/elasticpotpy
     ports:
      - "127.0.0.1:9200:9200"
+    read_only: True
+    user: nobody
+    tmpfs:
+      - /var/run/elasticpotpy
+      - /tmp/elasticpotpy
